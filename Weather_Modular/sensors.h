@@ -10,7 +10,10 @@
 
 //For the MPL3115A2 I2C Temp and Pressure Sensor
 #include <Wire.h>
-#include "MPL3115A2.h"
+#include <MPL3115A2.h>
+
+// RHT-03 (DHT22)
+#include <dht.h>
 
 /*
  * Define the hardware pins used
@@ -31,6 +34,11 @@ DallasTemperature dallasTemp(&oneWire);
 //
 MPL3115A2 mplTempPressure;
 
+// RHT-03 uses a proprietory one wire protocol
+// hooked up to pin 11
+# define RHT03 11
+dht rht03;
+
 void sensorsInit(){
   // Start up the Dallas library
   dallasTemp.begin(); // IC Default 9 bit. If you have troubles consider upping it 12. Ups the delay giving the IC more time to process the temperature measurement
@@ -41,6 +49,8 @@ void sensorsInit(){
   mplTempPressure.setModeBarometer();
   mplTempPressure.setOversampleRate(7); // Set oversample to recommended 128
   mplTempPressure.enableEventFlags();
+  
+  // no setup for the DHT required
 }
 
 void sensorsRead(){
@@ -55,6 +65,11 @@ void sensorsRead(){
   // Read the temperature and pressure from the MLP3115A2
   inT2 = mplTempPressure.readTemp();
   pressure = mplTempPressure.readPressure(); // Could Divide by 100 to get mBar
+  
+  // Read temp and humidity from the DHT
+  int chk = rht03.read22(RHT03);
+  inT3 = rht03.temperature;
+  humidity = rht03.humidity;
 }
 
 #endif
