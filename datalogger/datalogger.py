@@ -38,18 +38,18 @@ class zbDataLogger:
         self.msg["length"] = decodeHdr[3]
         self.msg["data"] = self.rfdata[8:]
         if self.msg["length"] != len(self.msg["data"]):
-            logging.error("Incorrect data length in received packet. Rx: " + str(len(self.msg["data"])) + " Expected: " + str(self.header["length"]))
+            logging.error("Incorrect data length in received packet. Rx: %s, Expected: %s" % (len(self.msg["data"]), self.header["length"]))
         else:
             if self.msg["appID"] in self.appHandlers:
-                logging.info("Handling application ID: " + str(self.msg["appID"]))
+                logging.info("Handling application ID: 0x%0.4X" % self.msg["appID"])
                 return self.appHandlers[self.msg["appID"]].decode(self.msg)
             else:
-                logging.warn("No handler registered for appID " + str(self.msg["appID"]) + " dropping message...")
+                logging.warn("No handler registered for appID 0x%0.4X, dropping message..." % self.msg["appID"])
         return []
 
     def register(self, appID, handler):
         self.appHandlers[appID] = handler
-        logging.info("Registered handler for appID: " + str(appID))
+        logging.info("Registered handler for appID: 0x%0.4X" % appID)
 
 # a handler class to allow indirection of message handling
 class appHandler:
@@ -61,17 +61,17 @@ class appHandler:
 
     def register(self, msgType, handler):
         self.msgHandlers[msgType] = handler
-        logging.info("Registered handler for msgType: " + str(msgType))
+        logging.info("Registered handler for msgType: 0x%0.4X" % msgType)
 
     def decode(self, msg):
         if self.appID != msg["appID"]:
-            logging.error("Passed a message that I didn't register for.  My appID: " + str(self.appID) + ", message appID " + str(msg["appID"]))
+            logging.error("Passed a message that I didn't register for.  My appID: 0x%0.4X, message appID: 0x%0.4X" % (self.appID, msg["appID"]))
         else:
             if msg["msgType"] in self.msgHandlers:
-                logging.info("Handling message type: " + str(msg["msgType"]))
+                logging.info("Handling message type: 0x%0.4X" % msg["msgType"])
                 return self.msgHandlers[msg["msgType"]].decode(msg)
             else:
-                logging.warn("No handler registered for msgType " + str(msg["msgType"]) + " dropping message...")
+                logging.warn("No handler registered for msgType 0x%0.4X, dropping message..." % msg["msgType"])
         return []
 
 
@@ -94,7 +94,7 @@ class msgHandler:
             if ref in msg:
                 csv.append(str(msg[ref]))
             else:
-                logging.error("Error creating CSV, requested item not available: " + str(ref))
+                logging.error("Error creating CSV, requested item not available: %s" % ref)
         return ','.join(csv)
 
 
