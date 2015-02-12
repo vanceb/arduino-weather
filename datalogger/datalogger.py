@@ -8,8 +8,6 @@ import logging
 
 logging.basicConfig(filename="./datalogger.log", format='%(asctime)s %(levelname)s:%(message)s', level=logging.INFO)
 
-serial_port = serial.Serial('/dev/ttyUSB0', 9600)
-
 class zbDataLogger:
     def __init__(self, port='/dev/ttyUSB0', baud=9600, escaped=True):
         self.port = port
