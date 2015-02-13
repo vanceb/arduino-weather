@@ -17,7 +17,7 @@ float inT3 = 0.0;
 float outT = 0.0;
 float pressure = 0.0;
 float humidity = 0.0;
-uint8_t light = 0;
+uint16_t light = 0;
 
 // Type to be used for transmission over xbee
 typedef struct tagWeatherSample {
