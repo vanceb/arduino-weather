@@ -6,7 +6,7 @@ import struct
 from datetime import datetime
 import logging
 
-logging.basicConfig(filename="./datalogger.log", format='%(asctime)s %(levelname)s:%(message)s', level=logging.INFO)
+logging.basicConfig(filename="/data/datalogger.log", format='%(asctime)s %(levelname)s:%(message)s', level=logging.INFO)
 
 class zbDataLogger:
     def __init__(self, port='/dev/ttyUSB0', baud=9600, escaped=True):
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     zbdl = zbDataLogger()
     weatherApp = appHandler(zbdl, 0x10a1)
     weatherMsg = weatherHandler(weatherApp)
-    with open('data.log', 'a', 1) as dataLogfile:
+    with open('/data/data.log', 'a', 1) as dataLogfile:
         while True:
             data = zbdl.getMsg()
             dataLogfile.write(data["csv"] + '\n')
