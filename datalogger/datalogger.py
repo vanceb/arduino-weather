@@ -1,24 +1,43 @@
 #! /usr/bin/python
+import os
+from datetime import datetime
+import json
+import logging
+import logging.config
 
 from xbee import ZigBee
 import serial
 import struct
-from datetime import datetime
-import logging
 
-logging.basicConfig(filename="/data/datalogger.log", format='%(asctime)s %(levelname)s:%(message)s', level=logging.INFO)
+
+# Load logging config from logging.json
+def setup_logging(default_path='logging.json', default_level=logging.INFO, env_key='LOG_CFG'):
+    path = default_path
+    value = os.getenv(env_key, None)
+    if value:
+        path = value
+    if os.path.exists(path):
+        with open(path, 'rt') as f:
+            config = json.load(f)
+        logging.config.dictConfig(config)
+        logging.info("Configured logging from json")
+    else:
+        logging.basicConfig(level=default_level)
+        logging.info("Configured logging basic")
+
 
 class zbDataLogger:
-    def __init__(self, port='/dev/ttyUSB0', baud=9600, escaped=True):
+    def __init__(self, port='/dev/ttyUSB0', baud=9600, escaped=True, appLog=None):
+        self.appLog = appLog or logging.getLogger(__name__)
         self.port = port
         self.baud = baud
         self.escaped = escaped
         try:
             self.serial_port = serial.Serial(self.port, self.baud)
             self.xbee = ZigBee(self.serial_port, escaped=self.escaped)
-            logging.info("Successfully initialised ZigBee on " + self.port + " at " + str(self.baud) + " baud")
+            self.appLog.info("Successfully initialised ZigBee on " + self.port + " at " + str(self.baud) + " baud")
         except:
-            logging.error("Unable to initialise Zigbee on " + self.port + " at " + str(self.baud) + " baud")
+            self.appLog.error("Unable to initialise Zigbee on " + self.port + " at " + str(self.baud) + " baud")
             raise
         self.frame = ""
         self.msg = {}
@@ -28,7 +47,7 @@ class zbDataLogger:
     def getMsg(self):
         self.frame = self.xbee.wait_read_frame() # blocking
         self.rfdata = self.frame.get("rf_data")
-        logging.info("Got message")
+        self.appLog.debug("Got message")
         self.msg["logtime"] = datetime.isoformat(datetime.now())
 
         decodeHdr = struct.unpack("HHHH", self.rfdata[0:8])
@@ -38,22 +57,24 @@ class zbDataLogger:
         self.msg["length"] = decodeHdr[3]
         self.msg["data"] = self.rfdata[8:]
         if self.msg["length"] != len(self.msg["data"]):
-            logging.error("Incorrect data length in received packet. Rx: %s, Expected: %s" % (len(self.msg["data"]), self.header["length"]))
+            self.appLog.error("Incorrect data length in received packet. Rx: %s, Expected: %s" % (len(self.msg["data"]), self.header["length"]))
         else:
             if self.msg["appID"] in self.appHandlers:
-                logging.info("Handling application ID: 0x%0.4X" % self.msg["appID"])
+                self.appLog.debug("Handling application ID: 0x%0.4X" % self.msg["appID"])
                 return self.appHandlers[self.msg["appID"]].decode(self.msg)
             else:
-                logging.warn("No handler registered for appID 0x%0.4X, dropping message..." % self.msg["appID"])
+                self.appLog.warn("No handler registered for appID 0x%0.4X, dropping message..." % self.msg["appID"])
         return []
 
     def register(self, appID, handler):
         self.appHandlers[appID] = handler
-        logging.info("Registered handler for appID: 0x%0.4X" % appID)
+        self.appLog.info("Registered handler for appID: 0x%0.4X" % appID)
+
 
 # a handler class to allow indirection of message handling
 class appHandler:
-    def __init__(self, parent, appID):
+    def __init__(self, parent, appID, appLog=None):
+        self.appLog = appLog or logging.getLogger(__name__)
         self.parent = parent
         self.appID = appID
         self.msgHandlers = {}
@@ -61,40 +82,43 @@ class appHandler:
 
     def register(self, msgType, handler):
         self.msgHandlers[msgType] = handler
-        logging.info("Registered handler for msgType: 0x%0.4X" % msgType)
+        self.appLog.info("Registered handler for msgType: 0x%0.4X" % msgType)
 
     def decode(self, msg):
         if self.appID != msg["appID"]:
-            logging.error("Passed a message that I didn't register for.  My appID: 0x%0.4X, message appID: 0x%0.4X" % (self.appID, msg["appID"]))
+            self.appLog.error("Passed a message that I didn't register for.  My appID: 0x%0.4X, message appID: 0x%0.4X" % (self.appID, msg["appID"]))
         else:
             if msg["msgType"] in self.msgHandlers:
-                logging.info("Handling message type: 0x%0.4X" % msg["msgType"])
+                self.appLog.debug("Handling message type: 0x%0.4X" % msg["msgType"])
                 return self.msgHandlers[msg["msgType"]].decode(msg)
             else:
-                logging.warn("No handler registered for msgType 0x%0.4X, dropping message..." % msg["msgType"])
+                self.appLog.warn("No handler registered for msgType 0x%0.4X, dropping message..." % msg["msgType"])
         return []
 
 
 class msgHandler:
-    def __init__(self, parent, msgTypes=[]):
+    def __init__(self, parent, msgTypes=[], appLog=None):
+        self.appLog = appLog or logging.getLogger(__name__)
         self.msgTypes = msgTypes
         for msgType in msgTypes:
+            self.appLog.debug ("Registering as handler for msgType 0x%0.4X" % msgType)
             parent.register(msgType, self)
 
 
     def decode(self, msg):
         # this is where the final message decoding happens - return an object containing the message items
         # do the work here and add values into the msg Dictionary
-        # you MUST also provide a "csv" member containing a CSV of the data to be logged
         return msg
 
     def createCSV(self, msg, listOfRefs):
+        # you MUST also provide a "csv" member containing a CSV of the data to be logged
         csv = []
+        self.appLog.debug("Creating csv logline using the following fields: " + str(listOfRefs))
         for ref in listOfRefs:
             if ref in msg:
                 csv.append(str(msg[ref]))
             else:
-                logging.error("Error creating CSV, requested item not available: %s" % ref)
+                self.appLog.error("Error creating CSV, requested item not available: %s" % ref)
         return ','.join(csv)
 
 
@@ -119,11 +143,14 @@ class weatherHandler(msgHandler):
 
 
 if __name__ == '__main__':
+    # Configure the logs
+    setup_logging(default_level=logging.DEBUG)
+    datalog = logging.getLogger("data")
+    datalog.info("Starting logging...")
     zbdl = zbDataLogger()
     weatherApp = appHandler(zbdl, 0x10a1)
     weatherMsg = weatherHandler(weatherApp)
-    with open('/data/data.log', 'a', 1) as dataLogfile:
-        while True:
-            data = zbdl.getMsg()
-            dataLogfile.write(data["csv"] + '\n')
+    while True:
+        data = zbdl.getMsg()
+        datalog.info(data["csv"])
 

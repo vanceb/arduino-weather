@@ -1,0 +1,58 @@
+{
+"version": 1,
+"disable_existing_loggers": false,
+"formatters": {
+    "application_log_formatter": {
+        "format": "%(asctime)s %(name)s-%(levelname)s: %(message)s"
+    },
+    "data_log_formatter": {
+        "format": "%(message)s"
+    }
+},
+
+"handlers": {
+    "console": {
+        "class": "logging.StreamHandler",
+        "level": "INFO",
+        "formatter": "application_log_formatter",
+        "stream": "ext://sys.stdout"
+    },
+
+    "application_log_handler": {
+        "class": "logging.handlers.TimedRotatingFileHandler",
+        "level": "WARNING",
+        "formatter": "application_log_formatter",
+        "filename": "datalogger.log",
+        "when": "D",
+        "interval": 1,
+        "backupCount": 0,
+        "encoding": "utf8",
+        "delay": false
+    },
+
+    "data_log_handler": {
+        "class": "logging.handlers.TimedRotatingFileHandler",
+        "level": "INFO",
+        "formatter": "data_log_formatter",
+        "filename": "data.log",
+        "when": "D",
+        "interval": 1,
+        "backupCount": 0,
+        "encoding": "utf8",
+        "delay": false
+    }
+},
+
+"loggers": {
+    "data": {
+        "level": "INFO",
+        "handlers": ["data_log_handler"],
+        "propagate": "no"
+    }
+},
+
+"root": {
+    "level": "WARNING",
+    "handlers": ["console", "application_log_handler"]
+}
+}
