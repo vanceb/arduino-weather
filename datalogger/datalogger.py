@@ -33,7 +33,7 @@ def getFriendly(default_path="friendly.json"):
     if os.path.exists(path):
         with open(path, 'rt') as f:
             friendly = json.load(f)
-        logging.critical("Loaded friendly names: " + str(friendly))
+        logging.info("Loaded friendly names: " + str(friendly))
 
 class zbDataLogger:
     def __init__(self, port='/dev/ttyUSB0', baud=9600, escaped=True, appLog=None):
