@@ -120,23 +120,38 @@ class appHandler:
         self.msgHandlers[msgName] = handler
         self.appLog.info("Registered handler for msgType: %s" % msgName)
 
-    def decode(self, msg):
+    def decode(self, msg, log=True):
         if self.appID != msg["appID"]:
             self.appLog.error("Passed a message that I didn't register for.  My appID: %s, message appID: %s" % (self.appID, msg["appID"]))
         else:
             if msg["msgType"] in self.msgHandlers:
                 self.appLog.debug("Handling message type: %s" % msg["msgType"])
-                return self.msgHandlers[msg["msgType"]].logCSV(msg)
+                msg = self.msgHandlers[msg["msgType"]].decode(msg)
+                if log:
+                    self.logCSV(msg)
+                return msg
             else:
                 self.appLog.warn("No handler registered for msgType %s, dropping message..." % msg["msgType"])
-        return []
+        return None
 
+    def logCSV(self, msg):
+        logger_name = "%s.%s.%s" % (msg["appID"], msg["msgType"], msg["source"])
+        msg["logger_name"] = logger_name
+        logger = logging.getLogger(logger_name)
+        msg = self.msgHandlers[msg["msgType"]].decode(msg)
+        if "csv" in msg:
+            logger.info(msg["csv"])
+        else:
+            self.appLog.error("No CSV data has been decoded.  Have you specified the fields to be listed in the CSV?")
+        return msg
 
+# The msgHandler class is a prototype class that should be subclassed to do something useful
 class msgHandler:
     def __init__(self, parent, msgTypes=[], appLog=None):
         self.appLog = appLog or logging.getLogger(__name__)
         self.msgTypes = msgTypes
         self.parent = parent
+        self.CSVFields = None
         for msgType in msgTypes:
             self.appLog.debug ("Registering as handler for msgType %s" % msgType)
             self.parent.register(msgType, self)
@@ -147,28 +162,33 @@ class msgHandler:
         # do the work here and add values into the msg Dictionary
         return msg
 
-    def createCSV(self, msg, listOfRefs):
+    def createCSV(self, msg):
         # you MUST also provide a "csv" member containing a CSV of the data to be logged
-        csv = []
-        self.appLog.debug("Creating csv logline using the following fields: " + str(listOfRefs))
-        for ref in listOfRefs:
-            if ref in msg:
-                csv.append(str(msg[ref]))
-            else:
-                self.appLog.error("Error creating CSV, requested item not available: %s" % ref)
-        return ','.join(csv)
-
-    def logCSV(self, msg):
-        logger_name = "%s.%s.%s" % (msg["appID"], msg["msgType"], msg["source"])
-        msg["logger_name"] = logger_name
-        logger = logging.getLogger(logger_name)
-        msg = self.decode(msg)
-        logger.info(msg["csv"])
+        if self.CSVFields != None:
+            csv = []
+            self.appLog.debug("Creating csv logline using the following fields: " + str(self.CSVFields))
+            for ref in self.CSVFields:
+                if ref in msg:
+                    csv.append(str(msg[ref]))
+                else:
+                    self.appLog.error("Error creating CSV, requested item not available: %s" % ref)
+            msg["csv"] = ','.join(csv)
+        else:
+            self.appLog.error("No CSV Fields have been defined for export")
         return msg
 
+    def setCSVFields(self, fields=None):
+        self.appLog.info("Setting CSV Fields to: " + str(fields))
+        self.CSVFields = fields
+
+    def getCSVFields(self):
+        return self.CSVFields
+
+# a concrete class that unpacks the data for a protocol and implements a msgHandler
 class weatherHandler(msgHandler):
     def __init__(self, parent):
         msgHandler.__init__(self, parent, ["0x0001"])
+        self.setCSVFields(["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity", "light"])
 
     def decode(self, msg):
         values = struct.unpack("Iihhhhhh", msg["data"])
@@ -181,9 +201,7 @@ class weatherHandler(msgHandler):
         msg["humidity"] = values[6]/100.0
         msg["light"] = values[7]
 
-        msg["csv"]= self.createCSV(msg, ["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity", "light"])
-
-        return msg;
+        return self.createCSV(msg)
 
 
 if __name__ == '__main__':
