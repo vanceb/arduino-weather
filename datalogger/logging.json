@@ -40,6 +40,17 @@
         "backupCount": 0,
         "encoding": "utf8",
         "delay": false
+    },
+    "weather_handler": {
+        "class": "logging.handlers.TimedRotatingFileHandler",
+        "level": "INFO",
+        "formatter": "data_log_formatter",
+        "filename": "/data/weather.log",
+        "when": "D",
+        "interval": 1,
+        "backupCount": 0,
+        "encoding": "utf8",
+        "delay": false
     }
 },
 
@@ -47,12 +58,18 @@
     "data": {
         "level": "INFO",
         "handlers": ["data_log_handler"],
-        "propagate": "no"
+        "propagate": false
+    },
+
+    "Weather.Reading.Study": {
+        "level": "INFO",
+        "handlers": ["weather_handler"],
+        "propagate": false
     }
 },
 
 "root": {
-    "level": "WARNING",
+    "level": "INFO",
     "handlers": ["console", "application_log_handler"]
 }
 }

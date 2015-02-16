@@ -1,0 +1,15 @@
+{
+    "appIDs": {
+        "0x10A1": "Weather"
+    },
+
+    "msgTypes": {
+        "Weather": {
+            "0x0001": "Reading"
+        }
+    },
+
+    "xbees": {
+        "0x0013A20040B3F1F5": "Study"
+    }
+}
