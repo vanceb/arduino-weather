@@ -4,11 +4,14 @@ from datetime import datetime
 import json
 import logging
 import logging.config
+import requests
 
 from xbee import ZigBee
 import serial
 import struct
 
+# Environment variable that indicates linked Docker container for data logging
+DOCKER_WS = 'WEATHER_LOGGER_PORT_5000_TCP'
 
 # Load logging config from logging.json
 def setup_logging(default_path='logging.json', default_level=logging.INFO, env_key='LOG_CFG'):
@@ -152,6 +155,7 @@ class msgHandler:
         self.msgTypes = msgTypes
         self.parent = parent
         self.CSVFields = None
+        self.JSONFields = None
         for msgType in msgTypes:
             self.appLog.debug ("Registering as handler for msgType %s" % msgType)
             self.parent.register(msgType, self)
@@ -162,19 +166,27 @@ class msgHandler:
         # do the work here and add values into the msg Dictionary
         return msg
 
-    def createCSV(self, msg):
-        # you MUST also provide a "csv" member containing a CSV of the data to be logged
+    def createFields(self, msg):
         if self.CSVFields != None:
             csv = []
-            self.appLog.debug("Creating csv logline using the following fields: " + str(self.CSVFields))
+            self.appLog.debug("Creating CSV logline using the following fields: " + str(self.CSVFields))
             for ref in self.CSVFields:
                 if ref in msg:
                     csv.append(str(msg[ref]))
                 else:
                     self.appLog.error("Error creating CSV, requested item not available: %s" % ref)
             msg["csv"] = ','.join(csv)
-        else:
-            self.appLog.error("No CSV Fields have been defined for export")
+
+        if self.JSONFields != None:
+            csv = {}
+            self.appLog.debug("Creating JSON data using the following fields: " + str(self.CSVFields))
+            for ref in self.JSONFields:
+                if ref in msg:
+                    csv[ref] = msg[ref]
+                else:
+                    self.appLog.error("Error creating JSON, requested item not available: %s" % ref)
+            msg["json"] = json.dumps(csv)
+
         return msg
 
     def setCSVFields(self, fields=None):
@@ -184,11 +196,20 @@ class msgHandler:
     def getCSVFields(self):
         return self.CSVFields
 
+    def setJSONFields(self, fields = None):
+        self.appLog.info("Setting JSON Fields to: " + str(fields))
+        self.JSONFields = fields
+
+    def getJSONFields(self):
+        return self.JSONFields
+
+
 # a concrete class that unpacks the data for a protocol and implements a msgHandler
 class weatherHandler(msgHandler):
     def __init__(self, parent):
         msgHandler.__init__(self, parent, ["0x0001"])
         self.setCSVFields(["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity", "light"])
+        self.setJSONFields(["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity", "light"])
 
     def decode(self, msg):
         values = struct.unpack("Iihhhhhh", msg["data"])
@@ -201,8 +222,33 @@ class weatherHandler(msgHandler):
         msg["humidity"] = values[6]/100.0
         msg["light"] = values[7]
 
-        return self.createCSV(msg)
+        return self.createFields(msg)
 
+class wsPostData():
+    def __init__(self, ws=None, env=None, appLog=None):
+        self.appLog = appLog or logging.getLogger(__name__)
+        self.ws = ws
+        if env is not None:
+            self.appLog.info("Attempting to configure linked Web Service from: $" + env)
+            # Use Docker Linked Container environment variables for setup
+            self.env = os.environ.get(env, None)
+            if self.env is not None:
+                self.ws = "http" + self.env[3:] + "/data"
+            else:
+                self.appLog.warning("Unable to configure web service from environment variable: $" + env)
+        self.appLog.info("Configured web service: %s" % str(self.ws))
+
+    def postData(self, data):
+        if self.ws is not None:
+            self.appLog.debug("Attempting to post data to: " + self.ws)
+            try:
+                r = requests.post(self.ws, data=data, headers={'content-type': 'application/json'})
+                if r.json['status'] == 'OK':
+                    return True
+                else:
+                    return False
+            except:
+                return False
 
 if __name__ == '__main__':
     # Configure the logs
@@ -213,7 +259,9 @@ if __name__ == '__main__':
     zbdl = zbDataLogger()
     weatherApp = appHandler(zbdl, "0x10A1")
     weatherMsg = weatherHandler(weatherApp)
+    log2ws = wsPostData(env=DOCKER_WS)
     while True:
         data = zbdl.getMsg()
         datalog.info(data["csv"])
+        log2ws.postData(data["json"])
 
