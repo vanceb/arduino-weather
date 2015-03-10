@@ -1,5 +1,8 @@
 #ifndef DATA_H
 #define DATA_H
+
+#include "Arduino.h"
+
 // Helper functions to convert floats to integers for easy transmission
 #define FloatToInt16(f) (round((double)(f)*(double)100.0))
 

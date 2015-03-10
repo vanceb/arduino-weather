@@ -1,6 +1,8 @@
 #ifndef COMMS_H
 #define COMMS_H
 
+#include "Arduino.h"
+
 #include "data.h"
 #include <XBee.h>
 

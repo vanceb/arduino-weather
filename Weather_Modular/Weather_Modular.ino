@@ -1,4 +1,6 @@
 // Include libraries
+
+
 #include <MPL3115A2.h>
 #include <OneWire.h>
 #include <Wire.h>
@@ -7,10 +9,15 @@
 
 #include <XBee.h>
 
+#include <avr/sleep.h>
+#include <avr/wdt.h>
+#include <avr/power.h>
+
 // Include the local files
 #include "data.h"
 #include "comms.h"
 #include "sensors.h"
+#include "pwrsave.h"
 
 long nextReading = millis();
 long interval = 5000;
@@ -19,11 +26,10 @@ void setup(){
   sensorsInit();
   xbeeInit();
   // lcdInit(); // to come
+  Serial.begin(9600);
 }
 
 void loop() {
-  if(millis() > nextReading){
-    nextReading += interval;
     sensorsRead();
     fillPayload();
     if(xbeeSend() != 0) {
@@ -31,7 +37,5 @@ void loop() {
     } else {
       Serial.println("Send success");
     }
-  } else {
-    delay(100);
-  }
+    gotoSleep();
 }

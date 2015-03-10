@@ -1,6 +1,8 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
+#include "Arduino.h"
+
 // data.h defines the global variables we will fill
 #include "data.h"
 
