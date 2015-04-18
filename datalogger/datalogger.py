@@ -208,11 +208,11 @@ class msgHandler:
 class weatherHandler(msgHandler):
     def __init__(self, parent):
         msgHandler.__init__(self, parent, ["0x0001"])
-        self.setCSVFields(["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity", "light"])
-        self.setJSONFields(["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity", "light"])
+        self.setCSVFields(["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity", "light", "battery", "solar"])
+        self.setJSONFields(["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity", "light", "battery", "solar"])
 
     def decode(self, msg):
-        values = struct.unpack("Iihhhhhh", msg["data"])
+        values = struct.unpack("Iihhhhhhhh", msg["data"])
         msg["millis"] = values[0]
         msg["pressure"] = values[1]/100.0
         msg["inT1"] = values[2]/100.0
@@ -221,6 +221,8 @@ class weatherHandler(msgHandler):
         msg["outT"] = values[5]/100.0
         msg["humidity"] = values[6]/100.0
         msg["light"] = values[7]
+        msg["battery"] = values[8]/200.0
+        msg["solar"] = values[9]/200.0
 
         return self.createFields(msg)
 
@@ -263,5 +265,5 @@ if __name__ == '__main__':
     while True:
         data = zbdl.getMsg()
         datalog.info(data["csv"])
-        log2ws.postData(data["json"])
+#        log2ws.postData(data["json"])
 

@@ -21,6 +21,8 @@ float outT = 0.0;
 float pressure = 0.0;
 float humidity = 0.0;
 uint16_t light = 0;
+uint16_t battery = 0;
+uint16_t solar = 0;
 
 // Type to be used for transmission over xbee
 typedef struct tagWeatherSample {
@@ -43,6 +45,11 @@ typedef struct tagWeatherSample {
 
     // Ambient light
     uint16_t light;
+    
+    // Power
+    uint16_t battery;
+    uint16_t solar;
+
 } WeatherSample;
 
 typedef struct tagXbeeCommBuffer {
@@ -77,6 +84,8 @@ void fillPayload (){
     payload.data.pressure = (int32_t)pressure;
     payload.data.humidity = FloatToInt16(humidity);
     payload.data.light = light;
+    payload.data.battery = battery;
+    payload.data.solar = solar;
 }
 
 #endif

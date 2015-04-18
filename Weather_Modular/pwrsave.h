@@ -7,6 +7,8 @@
 #include "avr/power.h"
 
 #define XBEE_SLEEP 7 // Setting Pin 7 low sends the XBee to PinSleep mode (Pin 9 on the XBee)
+#define XBEE_SLEEP_CYCLES 6 // How many times we wake before the XBee is woken
+int xbeeSleepCount = 0;
 
 // Interrupt vector that handles WDT wake (If not handled causes a reset of the Arduino)
 ISR(WDT_vect) {
@@ -14,18 +16,38 @@ ISR(WDT_vect) {
  
 }
 
-void wakeXBee(){
-    // Turn on the XBee
-    digitalWrite(XBEE_SLEEP, LOW); 
+void sleepXBee(){
+    // Signal to turn off the XBee
+    pinMode(OUTPUT, XBEE_SLEEP);
+    digitalWrite(XBEE_SLEEP, HIGH);    
+}
+
+// Returns the number of calls to this function before the XBee will actually wake - 0 means we woke it
+int wakeXBee(bool force=false){
+    // We are not going to wake the XBee every time... (Unless forced)  
+    if (force == true) {
+      xbeeSleepCount = 0;
+    } else {
+      if (xbeeSleepCount <= 0) {
+        // We woke last time and need to reset
+        xbeeSleepCount = XBEE_SLEEP_CYCLES;
+      } else {
+        xbeeSleepCount -= 1;
+      }
+    }
+    
+    if (xbeeSleepCount <= 0) {
+      // Turn on the XBee
+      digitalWrite(XBEE_SLEEP, LOW);  
+    }
+    
+    return xbeeSleepCount;
 }
 
 void gotoSleep() {
     // disable ADC
-    ADCSRA = 0;
-    
-    // Send the XBee to sleep
-    pinMode(OUTPUT, XBEE_SLEEP);
-    digitalWrite(XBEE_SLEEP, HIGH);
+    ADCSRA &= ~(bit(ADEN)); // ADC
+//    ADCSRB &= ~(bit(ADME)); // Analog Comparator
   
     // clear various "reset" flags
     MCUSR = 0;
@@ -57,7 +79,8 @@ void gotoSleep() {
     // User should call wakeXBee()
     
     // Re-enable the ADC
-    ADCSRA = (ADCSRA | bit(ADEN));
+    ADCSRA |= bit(ADEN);
+//    ADCSRB |= bit(ADME);
 }
 
 #endif

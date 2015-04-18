@@ -23,6 +23,10 @@
 // LDR potential divider (Analog)
 #define LDR A0
 
+// Power measurement pins
+#define BATTERY A4
+#define SOLAR A5
+
 // Data wire is plugged into pin 2 on the Arduino
 #define ONE_WIRE_BUS 10
 
@@ -56,6 +60,10 @@ void sensorsInit(){
 }
 
 void sensorsRead(){
+  // Get the power related readings
+  solar = analogRead(SOLAR);
+  battery = analogRead(BATTERY);
+  
   // Get the ambient light reading
   light = analogRead(LDR);
   

@@ -6,7 +6,7 @@
 #include "data.h"
 #include <XBee.h>
 
-#define XBEE_SERIAL Serial1
+#define XBEE_SERIAL Serial
 #define XBEE_BAUD 9600
 #define COORDINATOR_SH 0x0
 #define COORDINATOR_SL 0x0
