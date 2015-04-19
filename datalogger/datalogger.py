@@ -221,8 +221,8 @@ class weatherHandler(msgHandler):
         msg["outT"] = values[5]/100.0
         msg["humidity"] = values[6]/100.0
         msg["light"] = values[7]
-        msg["battery"] = values[8]/200.0
-        msg["solar"] = values[9]/200.0
+        msg["battery"] = values[8]/155.0
+        msg["solar"] = values[9]/155.0
 
         return self.createFields(msg)
 
