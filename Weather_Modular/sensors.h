@@ -64,7 +64,7 @@ void sensorsInit(){
   
   
   // Start the MS5611
-//  while (!tempPressure.begin()){
+//  while (!tempPressure.begin(MS5611_HIGH_RES)){
 //    delay(500);
 //    digitalWrite(AWAKEPIN, !digitalRead(AWAKEPIN));
 //  }

@@ -11,7 +11,7 @@
 int xbeeSleepCount = 0;
 
 // Have an LED to show we are awake
-#define AWAKEPIN 9
+#define AWAKEPIN 13 // Most Arduinos have an LED on pin 13, so lets use it...
 
 // Interrupt vector that handles WDT wake (If not handled causes a reset of the Arduino)
 ISR(WDT_vect) {
@@ -21,7 +21,7 @@ ISR(WDT_vect) {
 
 void sleepXBee(){
     // Signal to turn off the XBee
-    pinMode(OUTPUT, XBEE_SLEEP);
+    pinMode(XBEE_SLEEP, OUTPUT);
     digitalWrite(XBEE_SLEEP, HIGH);    
 }
 
