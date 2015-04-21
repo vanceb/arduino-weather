@@ -1,8 +1,8 @@
 // Include libraries
 
 
-//#include <MPL3115A2.h> // Using a different Altitude sensor
-#include <MS5611.h>
+#include <MPL3115A2.h> // Using a different Altitude sensor
+//#include <MS5611.h>
 #include <OneWire.h>
 #include <Wire.h>
 #include <DallasTemperature.h>
