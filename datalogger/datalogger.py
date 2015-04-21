@@ -265,5 +265,5 @@ if __name__ == '__main__':
     while True:
         data = zbdl.getMsg()
         datalog.info(data["csv"])
-#        log2ws.postData(data["json"])
+        log2ws.postData(data["json"])
 
