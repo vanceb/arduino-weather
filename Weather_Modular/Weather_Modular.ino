@@ -24,23 +24,23 @@ long nextReading = millis();
 long interval = 5000;
 
 void setup(){
+  // Turn on the LED
   pinMode(AWAKEPIN, OUTPUT);
   digitalWrite(AWAKEPIN, HIGH);
+  // Make sure the XBee is awake and ready
+  xbeeInit();
+  // Give things time to settle
   delay(500);
   sensorsInit();
-  xbeeInit();
   // lcdInit(); // to come
-  Serial.begin(9600);
 }
 
 void loop() {
     sensorsRead();
     fillPayload();
-    if(xbeeSend() != 0) {
-      Serial.println("Error sending data over XBee");
-    } else {
-      Serial.println("Send success");
-    }
+    xbeeSend();
+    //Give the xbee time to respond and send the message before sending to to sleep
+    delay(100);
     gotoSleep();
     // Give things time to come up after sleeping
     delay(50);

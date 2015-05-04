@@ -28,8 +28,8 @@
 #define LDR A3
 
 // Power measurement pins
-#define BATTERY A1
-#define SOLAR A0
+#define BATTERY A7
+#define SOLAR A2
 
 // Data wire is plugged into pin 2 on the Arduino
 #define ONE_WIRE_BUS 10

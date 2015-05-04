@@ -6,9 +6,8 @@
 #include "avr/wdt.h"
 #include "avr/power.h"
 
-#define XBEE_SLEEP 7 // Setting Pin 7 low sends the XBee to PinSleep mode (Pin 9 on the XBee)
-#define XBEE_SLEEP_CYCLES 0 // Not fully implemented yet, so set to 0 for wake every time
-int xbeeSleepCount = 0;
+#include "comms.h"
+
 
 // Have an LED to show we are awake
 #define AWAKEPIN 13 // Most Arduinos have an LED on pin 13, so lets use it...
@@ -17,34 +16,6 @@ int xbeeSleepCount = 0;
 ISR(WDT_vect) {
   wdt_disable();
  
-}
-
-void sleepXBee(){
-    // Signal to turn off the XBee
-    pinMode(XBEE_SLEEP, OUTPUT);
-    digitalWrite(XBEE_SLEEP, HIGH);    
-}
-
-// Returns the number of calls to this function before the XBee will actually wake - 0 means we woke it
-int wakeXBee(bool force=false){
-    // We are not going to wake the XBee every time... (Unless forced)  
-    if (force == true) {
-      xbeeSleepCount = 0;
-    } else {
-      if (xbeeSleepCount <= 0) {
-        // We woke last time and need to reset
-        xbeeSleepCount = XBEE_SLEEP_CYCLES;
-      } else {
-        xbeeSleepCount -= 1;
-      }
-    }
-    
-    if (xbeeSleepCount <= 0) {
-      // Turn on the XBee
-      digitalWrite(XBEE_SLEEP, LOW);  
-    }
-    
-    return xbeeSleepCount;
 }
 
 void gotoSleep() {
