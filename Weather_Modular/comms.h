@@ -12,6 +12,8 @@
 #define COORDINATOR_SL 0x0
 
 #define XBEE_SLEEP 7 // Setting Pin 7 high sends the XBee to PinSleep mode (Pin 9 on the XBee)
+#define CTS 6 // CTS indicates that the XBee is good to receive data
+#define TX_TIMEOUT 1000
 
 #define XBEE_SLEEP_CYCLES 0 // Not fully implemented yet, so set to 0 for wake every time
 int xbeeSleepCount = 0;
@@ -27,8 +29,8 @@ void xbeeInit(){
     // Make sure the XBee is awake
     pinMode(XBEE_SLEEP, OUTPUT);
     digitalWrite(XBEE_SLEEP, LOW);
-    // Allow time for it to associate with the network
-    delay(10000);
+    // Setup CTS Pin
+    pinMode(CTS, INPUT);
     
    // Initialize the comms   
     XBEE_SERIAL.begin(XBEE_BAUD);
@@ -71,17 +73,29 @@ int wakeXBee(bool force=false){
 static int xbeeSend(){
    // Make sure the XBee is awake
     wakeXBee();
-    delay(50);
-    
-    xbee.getNextFrameId();
-    xbee.send(zbTx);
-    if(xbee.readPacket(5000)){
-        // We got a response from our local xbee
-        if(xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE){
-            // This is the "all OK" route...
-            xbee.getResponse().getZBTxStatusResponse(txStatus);
-            return txStatus.getDeliveryStatus();
-        } 
+    // Wait for CTS from the XBee or timeout
+    bool gotCTS = false;
+    long timeout = millis() + TX_TIMEOUT;
+    while(millis() < timeout) {
+      if (digitalRead(CTS) == false) {
+        gotCTS = true;
+        break;
+      } else {
+        delay(10);
+      }
+    }
+
+    if(gotCTS == true){
+      xbee.getNextFrameId();
+      xbee.send(zbTx);
+      if(xbee.readPacket(5000)){
+          // We got a response from our local xbee
+          if(xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE){
+              // This is the "all OK" route...
+              xbee.getResponse().getZBTxStatusResponse(txStatus);
+              return txStatus.getDeliveryStatus();
+          } 
+      }
     }
     // Error...
     return -1;

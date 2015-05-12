@@ -51,6 +51,12 @@ MPL3115A2 mplTempPressure;
 dht rht03;
 
 void sensorsInit(){
+  
+  // Needed ti get a good battery violtage reading from the Seeeduino Stalker
+  // Reference is 1.1v internal on this processor, 
+  // so need to make sure all other analog readings take this into account
+  analogReference(INTERNAL); 
+  
   // Start up the Dallas library
   dallasTemp.begin(); // IC Default 9 bit. If you have troubles consider upping it 12. Ups the delay giving the IC more time to process the temperature measurement
 
