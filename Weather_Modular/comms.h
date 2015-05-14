@@ -21,8 +21,8 @@ int xbeeSleepCount = 0;
 
 #define TELEMETRY_APP_ID 0x0573
 #define TX_STATUS_MSG 0x0001
-#define TX_STATUS_VERSION 0x001
-#define TX_STATUS_UPDATE_PERIOD 900000 // 15 mins
+#define TX_STATUS_VERSION 0x0001
+#define TX_STATUS_UPDATE_PERIOD 60000
 
 uint32_t nextTxUpdate;
 
@@ -157,6 +157,7 @@ int wakeXBee(bool force=false){
 
 // Send data using the XBee - should return 0 if success
 static int xbeeSend(){
+   tx_packets++;
    // Make sure the XBee is awake
     wakeXBee();
     // Wait for CTS from the XBee or timeout
@@ -186,10 +187,20 @@ static int xbeeSend(){
                   // Most likely route so get it out of the way first
                   // See whether we should send a TX Status report
                   if (millis() > nextTxUpdate) {
-                        nextTxUpdate = millis() + TX_STATUS_UPDATE_PERIOD;
+
                         fillTxStatus();
                         xbee.getNextFrameId();
                         xbee.send(zbTxStatus);
+                        if(xbee.readPacket(5000)){
+                          // We got a response from our local xbee
+                          if(xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE){
+                            // This is the "all OK" route...
+                            xbee.getResponse().getZBTxStatusResponse(txStatus);
+                            if(txStatus.getDeliveryStatus() == SUCCESS) {
+                              nextTxUpdate = millis() + TX_STATUS_UPDATE_PERIOD;                          
+                            }
+                         } 
+                      }
                   }
                   return 0;
                   break;
@@ -227,14 +238,14 @@ static int xbeeSend(){
                   break;
                 default :
                   // Unexpected error
-                  tx_other2++;
+                  tx_other1++;
                   return -11;
               }
               return txStatus.getDeliveryStatus();
           } else {
             // There was another recieve packet or modem status???
             // Increment the failure counter
-            tx_other1++;
+            tx_other2++;
             return -12;
           }
       } else {

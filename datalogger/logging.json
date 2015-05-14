@@ -13,7 +13,7 @@
 "handlers": {
     "console": {
         "class": "logging.StreamHandler",
-        "level": "INFO",
+        "level": "DEBUG",
         "formatter": "application_log_formatter",
         "stream": "ext://sys.stdout"
     },
@@ -30,11 +30,11 @@
         "delay": false
     },
 
-    "data_log_handler": {
+    "txStatus_handler": {
         "class": "logging.handlers.TimedRotatingFileHandler",
         "level": "INFO",
         "formatter": "data_log_formatter",
-        "filename": "/data/data.log",
+        "filename": "/data/txStatus.log",
         "when": "D",
         "interval": 1,
         "backupCount": 0,
@@ -58,6 +58,11 @@
     "Weather.Reading.Study": {
         "level": "INFO",
         "handlers": ["weather_handler"],
+        "propagate": false
+    },
+    "TxStatus.Update.Study": {
+        "level": "INFO",
+        "handlers": ["txStatus_handler"],
         "propagate": false
     }
 },

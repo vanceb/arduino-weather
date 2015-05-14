@@ -24,10 +24,8 @@ long nextReading = millis();
 long interval = 5000;
 int txResponse = 0;
 
-void flash(int pin, int times, int onTime=100, int offTime=100){
+void flash(int pin, int times, int onTime=200, int offTime=200){
   int pinState = digitalRead(pin);
-  digitalWrite(pin, LOW);
-  delay(offTime);
   for (int i=0; i<times; i++){
     digitalWrite(pin, HIGH);
     delay(onTime);

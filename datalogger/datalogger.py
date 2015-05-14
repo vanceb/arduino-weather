@@ -141,6 +141,7 @@ class appHandler:
         logger_name = "%s.%s.%s" % (msg["appID"], msg["msgType"], msg["source"])
         msg["logger_name"] = logger_name
         logger = logging.getLogger(logger_name)
+        # can we remove the line below?  Seems to be happening in decode already?
         msg = self.msgHandlers[msg["msgType"]].decode(msg)
         if "csv" in msg:
             logger.info(msg["csv"])
@@ -208,8 +209,10 @@ class msgHandler:
 class weatherHandler(msgHandler):
     def __init__(self, parent):
         msgHandler.__init__(self, parent, ["0x0001"])
-        self.setCSVFields(["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity", "light", "battery", "solar"])
-        self.setJSONFields(["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity", "light", "battery", "solar"])
+        self.setCSVFields(["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity",\
+                           "light", "battery", "solar"])
+        self.setJSONFields(["logtime", "millis", "inT1", "inT2", "inT3", "outT", "pressure", "humidity",\
+                            "light", "battery", "solar"])
 
     def decode(self, msg):
         values = struct.unpack("Iihhhhhhhh", msg["data"])
@@ -224,6 +227,36 @@ class weatherHandler(msgHandler):
         msg["battery"] = (values[8]*64)/10000.0 # Should give 5 decimal places
         msg["solar"] = (values[9]*64)/10000.0 # Should give 5 decimal places
 
+        return self.createFields(msg)
+
+class txStatusHandler(msgHandler):
+    def __init__(self, parent):
+        msgHandler.__init__(self, parent, ["0x0001"])
+        self.setCSVFields(["logtime", "millis", "packets", "cts_timeout", "local_timeout", "network_ack",\
+                            "not_joined", "cca", "invalid_dest", "self_addr", "addr_not_found", "no_route",\
+                            "payload_too_big", "other"])
+        #self.setJSONFields(i["logtime", "millis", "packets", "cts_timeout", "local_timeout", "network_ack",\
+        #                     "not_joined", "cca", "invalid_dest", "self_addr", "addr_not_found", "no_route",\
+        #                     "payload_too_big", "other"])
+
+    def decode(self, msg):
+        try:
+            values = struct.unpack("IHHHHHHHHHHHHH", msg["data"])
+            msg["millis"] = values[0]
+            msg["packets"] = values[1]
+            msg["cts_timeout"] = values[2]
+            msg["local_timeout"] = values[3]
+            msg["cca"] = values[4]
+            msg["invalid_dest"] = values[5]
+            msg["network_ack"] = values[6]
+            msg["not_joined"] = values[7]
+            msg["self_addr"] = values[8]
+            msg["addr_not_found"] = values[9]
+            msg["no_route"] = values[10]
+            msg["payload_too_big"] = values[11]
+            msg["other"] = values[12] + values[13]
+        except:
+            self.appLog.error("Error decoding TxStatus data.  Actual data length received is: " + str(len(msg["data"])))
         return self.createFields(msg)
 
 class wsPostData():
@@ -261,9 +294,13 @@ if __name__ == '__main__':
     zbdl = zbDataLogger()
     weatherApp = appHandler(zbdl, "0x10A1")
     weatherMsg = weatherHandler(weatherApp)
+    txStatusApp = appHandler(zbdl, "0x0573")
+    txStatusMsg = txStatusHandler(txStatusApp)
     log2ws = wsPostData(env=DOCKER_WS)
     while True:
         data = zbdl.getMsg()
-        datalog.info(data["csv"])
-        log2ws.postData(data["json"])
+        if "csv" in data:
+            datalog.info(data["csv"])
+        if "json" in data:
+            log2ws.postData(data["json"])
 
