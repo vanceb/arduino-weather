@@ -12,7 +12,7 @@
 #define WS_MSG_READING 0x0001 // a Reading
 
 
-// Global variables to hold the data
+// Global variables to hold the sensor data
 // These will be updated in the main sketch
 float inT1 = 0.0;
 float inT2 = 0.0;

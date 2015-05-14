@@ -22,9 +22,12 @@
 
 long nextReading = millis();
 long interval = 5000;
+int txResponse = 0;
 
 void flash(int pin, int times, int onTime=100, int offTime=100){
   int pinState = digitalRead(pin);
+  digitalWrite(pin, LOW);
+  delay(offTime);
   for (int i=0; i<times; i++){
     digitalWrite(pin, HIGH);
     delay(onTime);
@@ -49,8 +52,9 @@ void setup(){
 void loop() {
     sensorsRead();
     fillPayload();
-    if( xbeeSend() <0){ //error sending
-      flash(AWAKEPIN, 5);
+    txResponse = xbeeSend();
+    if(txResponse < 0){ //error sending
+      flash(AWAKEPIN, abs(txResponse));
     }
     //Give the xbee time to respond and send the message before sending to to sleep
     delay(100);
