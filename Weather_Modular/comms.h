@@ -191,7 +191,7 @@ static int xbeeSend(){
                         fillTxStatus();
                         xbee.getNextFrameId();
                         xbee.send(zbTxStatus);
-                        if(xbee.readPacket(5000)){
+                        if(xbee.readPacket(TX_RESPONSE_TIMEOUT)){
                           // We got a response from our local xbee
                           if(xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE){
                             // This is the "all OK" route...
